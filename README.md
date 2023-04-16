@@ -9,9 +9,9 @@
 
 Используемые технологии:
 
-React
-React Router
-Redux Toolkit
+React,
+React Router,
+Redux Toolkit,
 react-beautiful-dnd
 
 ---
