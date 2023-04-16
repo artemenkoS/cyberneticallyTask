@@ -12,43 +12,56 @@ import {
   TableRow,
 } from '@mui/material';
 import { SelectChangeEvent } from '@mui/material/Select';
-import { useSelector, useDispatch } from 'react-redux';
 
-import { setCurrentPage, setReportsPerPage, setDisplayColumns, setCurrentReports } from '../../store/slice';
 import ParamsSelect from '../../components/ParamsSelect/ParamsSelect';
 import { useGetReportsQuery } from '../../services/reportsApi';
-import { stockReportsSelector } from '../../store/selectors';
-import { COLUMNS, SELECTED_COMPANY, ROWS_PER_PAGE_OPTIONS } from './constants';
-import { getFormattedDate } from './utils';
-
+import {
+  COLUMNS,
+  DEFAULT_PAGE,
+  DEFAULT_PER_PAGE,
+  DEFAULT_PARAMS,
+  SELECTED_COMPANY,
+  ROWS_PER_PAGE_OPTIONS,
+} from './constants';
+import { IReport } from './types';
 import { CellText, Layout, Preloader } from './styled';
 
 export const StockReports = () => {
-  const dispatch = useDispatch();
-  const state = useSelector(stockReportsSelector);
+  const [currentPage, setCurrentPage] = React.useState(DEFAULT_PAGE);
+  const [reportsPerPage, setReportsPerPage] = React.useState(DEFAULT_PER_PAGE);
+  const [displayColumns, setDisplayColumns] = React.useState<string[]>(DEFAULT_PARAMS);
+  const [currentReports, setCurrentReports] = React.useState<IReport[]>([]);
 
   const { data, isError, isLoading } = useGetReportsQuery(SELECTED_COMPANY);
 
   React.useEffect(() => {
-    const endIndex = state.currentPage * state.reportsPerPage;
-    dispatch(setCurrentReports(data?.slice(endIndex - state.reportsPerPage, endIndex) ?? []));
-  }, [state.currentPage, state.reportsPerPage, data, dispatch]);
+    const endIndex = currentPage * reportsPerPage;
+    setCurrentReports(data?.slice(endIndex - reportsPerPage, endIndex) ?? []);
+  }, [currentPage, reportsPerPage, data]);
 
   const handleOnDragEnd = (result: DropResult) => {
     if (!result.destination) {
       return;
     }
 
-    const newReports = [...state.currentReports];
-    const [reorderedItem] = newReports.splice(result.source.index, 1);
-    newReports.splice(result.destination.index, 0, reorderedItem);
-    dispatch(setCurrentReports(newReports));
+    setCurrentReports((prevState) => {
+      const newReports = [...prevState];
+      const [reorderedItem] = newReports.splice(result.source.index, 1);
+      newReports.splice(result.destination!.index, 0, reorderedItem);
+
+      return newReports;
+    });
   };
 
-  const handleDisplayColumnsChange = (e: SelectChangeEvent<typeof state.selectedColumns>) => {
+  const handleDisplayColumnsChange = (e: SelectChangeEvent<typeof displayColumns>) => {
     if (Array.isArray(e.target.value)) {
-      dispatch(setDisplayColumns(e.target.value));
+      setDisplayColumns(e.target.value);
     }
+  };
+
+  const dateFormat = (stamp: any) => {
+    const date = new Date(stamp);
+    return date.toDateString();
   };
 
   if (isLoading) {
@@ -67,18 +80,18 @@ export const StockReports = () => {
     <Layout>
       <Paper>
         <Box display="flex" justifyContent="flex-end" marginBottom={2} padding={1}>
-          <ParamsSelect onChange={handleDisplayColumnsChange} params={state.selectedColumns} />
+          <ParamsSelect onChange={handleDisplayColumnsChange} params={displayColumns} />
         </Box>
       </Paper>
       <Paper>
         <TableContainer>
-          <Table sx={{ minWidth: 900, tableLayout: 'fixed' }}>
+          <Table sx={{ minWidth: 1000, tableLayout: 'fixed' }}>
             <colgroup>
-              <col width="25%" />
+              <col width="20%" />
             </colgroup>
             <TableHead>
               <TableRow>
-                {state.selectedColumns.map((param) => (
+                {displayColumns.map((param) => (
                   <TableCell key={param}>
                     <CellText>{param}</CellText>
                   </TableCell>
@@ -89,7 +102,7 @@ export const StockReports = () => {
               <Droppable droppableId="table">
                 {(droppableProvided) => (
                   <TableBody {...droppableProvided.droppableProps} ref={droppableProvided.innerRef}>
-                    {state.currentReports?.map((report, i) => (
+                    {currentReports?.map((report, i) => (
                       <Draggable key={report.companyName} index={i} draggableId={report.companyName}>
                         {(draggableProvided, snapshot) => (
                           <TableRow
@@ -104,9 +117,11 @@ export const StockReports = () => {
                           >
                             {COLUMNS.map(
                               (column) =>
-                                state.selectedColumns.includes(column.value) && (
+                                displayColumns.includes(column.value) && (
                                   <TableCell key={column.id} size="small">
-                                    <CellText>{getFormattedDate(report[column.id], column.type)}</CellText>
+                                    <CellText>
+                                      {column.type === 'date' ? dateFormat(report[column.id]) : report[column.id]}
+                                    </CellText>
                                   </TableCell>
                                 )
                             )}
@@ -122,17 +137,18 @@ export const StockReports = () => {
           </Table>
         </TableContainer>
         <TablePagination
+          labelRowsPerPage=""
           component="div"
           count={data.length}
-          rowsPerPage={state.reportsPerPage}
-          page={state.currentPage - 1}
+          rowsPerPage={reportsPerPage}
+          page={currentPage - 1}
           rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
           onPageChange={(e, newPage) => {
-            dispatch(setCurrentPage(newPage + 1));
+            setCurrentPage(newPage + 1);
           }}
           onRowsPerPageChange={(e) => {
-            dispatch(setReportsPerPage(parseInt(e.target.value, 10)));
-            dispatch(setCurrentPage(1));
+            setReportsPerPage(parseInt(e.target.value, 10));
+            setCurrentPage(1);
           }}
         />
       </Paper>

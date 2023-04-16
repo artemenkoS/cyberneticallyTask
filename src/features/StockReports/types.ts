@@ -1,10 +1,8 @@
-export type ReportValues = boolean | string | number | null;
-
 export interface IColumn {
   id: keyof IReport;
   isDisabled?: boolean;
   value: string;
-  type: 'string' | 'number' | 'date' | 'boolean';
+  type: 'string' | 'number' | 'date';
 }
 
 export interface IReport {

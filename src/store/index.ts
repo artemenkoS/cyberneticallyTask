@@ -1,10 +1,9 @@
 import { configureStore } from '@reduxjs/toolkit';
 
 import { reportsApi } from '../services/reportsApi';
-import { stockReportsSlice } from './slice';
 
 export const store = configureStore({
-  reducer: { [reportsApi.reducerPath]: reportsApi.reducer, stockReports: stockReportsSlice.reducer },
+  reducer: { [reportsApi.reducerPath]: reportsApi.reducer },
 
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(reportsApi.middleware),
 });
